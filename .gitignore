@@ -1,0 +1,9 @@
+/.venv
+/duplicates
+/duplicate_check.sqlite
+/error
+/import
+/in_progress
+/presorted
+/sorted
+/testfiles
