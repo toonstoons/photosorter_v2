@@ -116,7 +116,7 @@ def main():
                         if os.path.isfile(os.path.join(SOURCE_DIR, f))]
 
     if not files_to_process:
-        print("No files to process.")
+        print("No files to process...")
         return
 
     print(f"Processing {len(files_to_process)} files...")
