@@ -7,3 +7,5 @@
 /presorted
 /sorted
 /testfiles
+/bin
+__pycache__
