@@ -23,6 +23,10 @@ def get_log_file_path(year: str) -> str:
     return os.path.join(BASE_DIR, f"{year}_sort_log.csv")
 
 
+def to_project_relative(path: str) -> str:
+    return os.path.normpath(os.path.relpath(path, BASE_DIR))
+
+
 def append_log_entry(year: str, timestamp: str, country: str, city: str, filename: str) -> None:
     log_file = get_log_file_path(year)
     with _log_lock:
@@ -177,11 +181,12 @@ def process_sorted_move(task_dir):
             print(f"[SORTED] {final_filename}")
             file_hash = meta.get("sha256")
             if file_hash and os.path.exists(DB_PATH):
+                final_destination_rel = to_project_relative(final_destination)
                 conn = sqlite3.connect(DB_PATH)
                 try:
                     conn.execute(
                         "UPDATE photos SET current_path = ? WHERE hash = ?",
-                        (final_destination, file_hash),
+                        (final_destination_rel, file_hash),
                     )
                     conn.commit()
                 finally:

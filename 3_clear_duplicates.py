@@ -6,6 +6,12 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DUPLICATES_DIR = os.path.join(BASE_DIR, "duplicates")
 
 
+def resolve_project_path(path_value):
+	if os.path.isabs(path_value):
+		return path_value
+	return os.path.normpath(os.path.join(BASE_DIR, path_value))
+
+
 def read_original_path(uuid_dir):
 	original_path_file = os.path.join(uuid_dir, "original.txt")
 	if not os.path.isfile(original_path_file):
@@ -28,12 +34,14 @@ def process_duplicate_uuid(uuid_dir):
 		print(f"[SKIP] Missing original.txt or empty path: {uuid_dir}")
 		return False
 
-	if not os.path.exists(original_path):
-		print(f"[KEEP] Original file missing: {original_path}")
+	resolved_original_path = resolve_project_path(original_path)
+
+	if not os.path.exists(resolved_original_path):
+		print(f"[KEEP] Original file missing: {resolved_original_path}")
 		return False
 
 	shutil.rmtree(uuid_dir)
-	print(f"[DELETED] {uuid_dir} -> original exists: {original_path}")
+	print(f"[DELETED] {uuid_dir} -> original exists: {resolved_original_path}")
 	return True
 
 

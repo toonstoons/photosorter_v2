@@ -10,7 +10,7 @@ from concurrent.futures import ThreadPoolExecutor
 from threading import Lock
 
 # --- CONFIGURATION ---
-BASE_DIR = os.getcwd()
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 IMPORT_DIR = os.path.join(BASE_DIR, "import")
 IN_PROGRESS_DIR = os.path.join(BASE_DIR, "in_progress")
 DUPLICATES_DIR = os.path.join(BASE_DIR, "duplicates")
@@ -18,6 +18,10 @@ DB_PATH = os.path.join(BASE_DIR, "duplicate_check.sqlite")
 EXIFTOOL_PATH = os.path.join(BASE_DIR, "bin", "linux", "Image-ExifTool-13.58", "exiftool")
 
 db_lock = Lock()
+
+
+def to_project_relative(path: str) -> str:
+    return os.path.normpath(os.path.relpath(path, BASE_DIR))
 
 
 def remove_empty_import_dirs(root_dir):
@@ -87,9 +91,10 @@ def process_file(file_info):
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
         try:
+            current_path_rel = to_project_relative(dest_path)
             cursor.execute(
                 "INSERT INTO photos (hash, uuid, original_path,current_path) VALUES (?, ?, ?, ?)", 
-                (file_hash, file_uuid, dest_path, dest_path)
+                (file_hash, file_uuid, dest_path, current_path_rel)
             )
             conn.commit()
         except sqlite3.IntegrityError:

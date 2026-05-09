@@ -6,6 +6,12 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(BASE_DIR, "duplicate_check.sqlite")
 
 
+def resolve_project_path(path_value: str) -> str:
+	if os.path.isabs(path_value):
+		return path_value
+	return os.path.normpath(os.path.join(BASE_DIR, path_value))
+
+
 def remove_missing_files(db_path: str) -> int:
 	if not os.path.exists(db_path):
 		raise FileNotFoundError(f"Database not found: {db_path}")
@@ -20,7 +26,7 @@ def remove_missing_files(db_path: str) -> int:
 		missing_hashes = [
 			file_hash
 			for file_hash, current_path in rows
-			if not current_path or not os.path.exists(current_path)
+			if not current_path or not os.path.exists(resolve_project_path(current_path))
 		]
 
 		if missing_hashes:
