@@ -144,8 +144,8 @@ def main():
     with ThreadPoolExecutor(max_workers=8) as executor:
         executor.map(process_file, tasks)
 
-    removed_count = remove_empty_import_dirs(IMPORT_DIR)
-    print(f"Removed {removed_count} empty folder(s) from import.")
+    # removed_count = remove_empty_import_dirs(IMPORT_DIR)
+    # print(f"Removed {removed_count} empty folder(s) from import.")
 
 if __name__ == "__main__":
     main()

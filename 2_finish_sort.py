@@ -3,6 +3,7 @@ import os
 import json
 import shutil
 import re
+import errno
 import sqlite3
 import threading
 from datetime import datetime
@@ -51,9 +52,47 @@ def sanitize_and_format(text, max_len=None):
         clean_text = clean_text[:max_len]
     return clean_text
 
+
+def move_without_overwrite(src_path, target_dir, preferred_filename):
+    """Move a file to target_dir with a unique name without overwriting existing files."""
+    base, extension = os.path.splitext(preferred_filename)
+    counter = 0
+
+    while True:
+        candidate_name = preferred_filename if counter == 0 else f"{base}_{counter}{extension}"
+        candidate_path = os.path.join(target_dir, candidate_name)
+
+        # Reserve filename atomically so parallel workers cannot pick the same name.
+        try:
+            fd = os.open(candidate_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+            os.close(fd)
+        except FileExistsError:
+            counter += 1
+            continue
+
+        try:
+            try:
+                os.replace(src_path, candidate_path)
+            except OSError as e:
+                if e.errno != errno.EXDEV:
+                    raise
+                shutil.copy2(src_path, candidate_path)
+                os.unlink(src_path)
+            return candidate_path
+        except Exception:
+            # Best-effort cleanup for reserved placeholder on failure.
+            try:
+                if os.path.exists(candidate_path) and os.path.getsize(candidate_path) == 0:
+                    os.unlink(candidate_path)
+            except Exception:
+                pass
+            raise
+
 def process_sorted_move(task_dir):
+    print(f"Processing {task_dir}...")
     metadata_path = os.path.join(task_dir, "metadata.json")
     if not os.path.exists(metadata_path):
+        print(f"[ERROR] Metadata file not found in {task_dir}")
         return
 
     with open(metadata_path, 'r', encoding='utf-8') as f:
@@ -114,7 +153,7 @@ def process_sorted_move(task_dir):
     # Final Path Construction
     # Directory: YEAR_MAIN_FOLDER (e.g., 2024_VACATION)
     target_dir_name = f"{year}_{main_folder}"
-    target_subfolder = f"{month_day}_{year}_{main_folder}_{sub_folder if sub_folder else "NO_SUBFOLDER"}"
+    target_subfolder = f"{month_day}_{year}_{main_folder}_{sub_folder if sub_folder else 'NO_SUBFOLDER'}"
     target_dir_path = os.path.join(SORTED_DIR, ext_folder, target_dir_name, target_subfolder)
     os.makedirs(target_dir_path, exist_ok=True)
 
@@ -122,8 +161,6 @@ def process_sorted_move(task_dir):
     # Everything is already forced to upper in steps above, but we'll ensure it here
     name_part = f"{month_day}_{hms}_{sub_folder}_{make_model_combined}"
     final_filename = f"{name_part}{ext}".upper()
-    
-    final_destination = os.path.join(target_dir_path, final_filename)
 
     # Move and Cleanup
     photo_file = None
@@ -134,7 +171,8 @@ def process_sorted_move(task_dir):
     
     if photo_file:
         try:
-            shutil.move(photo_file, final_destination)
+            final_destination = move_without_overwrite(photo_file, target_dir_path, final_filename)
+            final_filename = os.path.basename(final_destination)
             shutil.rmtree(task_dir)
             print(f"[SORTED] {final_filename}")
             file_hash = meta.get("sha256")

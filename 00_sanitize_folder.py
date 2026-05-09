@@ -4,7 +4,7 @@ import shutil
 from pathlib import Path
 
 
-ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".mp4",".raf"}
+ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".mp4",".raf",".arw",".mov",".cr2",".cr3"}
 IGNORED_ROOT_FOLDERS = {"supported", "unsupported"}
 
 
